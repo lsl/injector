@@ -30,7 +30,7 @@ func RegisterInjector[T any](fn func(*http.Request) T) {
 }
 
 // Register is a convenience helper to register static instances.
-func Register[T any](val T) {
+func RegisterStatic[T any](val T) {
 	RegisterInjector(func(_ *http.Request) T {
 		return val
 	})

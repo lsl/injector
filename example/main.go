@@ -134,7 +134,7 @@ func main() {
 	userRepo := NewUserRepo()
 
 	// Register dependencies for injection
-	injector.Register(userRepo)
+	injector.RegisterStatic(userRepo)
 
 	// Register AppLogger explicitly to match the pointer type used in handlers
 	injector.RegisterInjector(func(r *http.Request) *AppLogger {
