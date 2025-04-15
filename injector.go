@@ -86,6 +86,43 @@ func Inject(fn any) http.HandlerFunc {
 	}
 }
 
+// Middleware wraps a function returning func(http.Handler) http.Handler and injects its dependencies.
+func Middleware(fn any) func(http.Handler) http.Handler {
+	v := reflect.ValueOf(fn)
+	t := v.Type()
+
+	if t.Kind() != reflect.Func || t.NumOut() != 1 {
+		panic("injector: middleware must be a function returning one value")
+	}
+
+	if t.Out(0) != reflect.TypeOf((func(http.Handler) http.Handler)(nil)) {
+		panic("injector: middleware must return func(http.Handler) http.Handler")
+	}
+
+	// Precompile argument resolvers
+	resolvers := make([]func(*http.Request) reflect.Value, t.NumIn())
+	for i := 0; i < t.NumIn(); i++ {
+		param := t.In(i)
+		injectorFn, ok := injectors[param]
+		if !ok {
+			panic("no injector for middleware param: " + param.String())
+		}
+		resolvers[i] = func(r *http.Request) reflect.Value {
+			return reflect.ValueOf(injectorFn(r))
+		}
+	}
+
+	return func(next http.Handler) http.Handler {
+		// Create dummy request to resolve dependencies
+		dummyReq, _ := http.NewRequest("GET", "/", nil)
+		args := make([]reflect.Value, len(resolvers))
+		for i, resolver := range resolvers {
+			args[i] = resolver(dummyReq)
+		}
+		return v.Call(args)[0].Interface().(func(http.Handler) http.Handler)(next)
+	}
+}
+
 // Context helpers.
 type ctxKey string
 
