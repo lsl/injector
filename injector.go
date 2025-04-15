@@ -12,7 +12,7 @@ type Injector func(*http.Request) any
 
 var injectors = map[reflect.Type]Injector{}
 
-// RegisterResolver allows services to be registered for injection.
+// RegisterResolver registers a function that resolves a type dynamically per request.
 func RegisterResolver[T any](fn func(*http.Request) T) {
 	var zero T
 	// Two options here:
@@ -35,7 +35,7 @@ func RegisterResolver[T any](fn func(*http.Request) T) {
 	}
 }
 
-// Register is a convenience helper to register static instances.
+// RegisterStatic is a convenience helper to register static instances.
 func RegisterStatic[T any](val T) {
 	RegisterResolver(func(_ *http.Request) T {
 		return val
@@ -121,6 +121,63 @@ func Middleware(fn any) func(http.Handler) http.Handler {
 		}
 		return v.Call(args)[0].Interface().(func(http.Handler) http.Handler)(next)
 	}
+}
+
+// Router is an http.Handler that supports dependency-injected handlers and middleware.
+type Router struct {
+	mux        *http.ServeMux
+	middleware []func(http.Handler) http.Handler
+}
+
+// NewRouter creates a new injector-aware Router.
+func NewRouter() *Router {
+	return &Router{
+		mux:        http.NewServeMux(),
+		middleware: []func(http.Handler) http.Handler{},
+	}
+}
+
+// Use appends a middleware to the Router.
+func (r *Router) Use(mw any) {
+	// Allow raw middleware or injector-aware middleware
+	switch fn := mw.(type) {
+	case func(http.Handler) http.Handler:
+		r.middleware = append(r.middleware, fn)
+	default:
+		r.middleware = append(r.middleware, Middleware(fn))
+	}
+}
+
+// HandleFunc registers a handler with injection support.
+func (r *Router) HandleFunc(pattern string, handler any) {
+	var h http.Handler = Inject(handler)
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		h = r.middleware[i](h)
+	}
+	r.mux.Handle(pattern, h)
+}
+
+// Handle registers a handler or function with injection support.
+func (r *Router) Handle(pattern string, h any) {
+	var handler http.Handler
+
+	switch v := h.(type) {
+	case http.Handler:
+		handler = v
+	default:
+		handler = Inject(v)
+	}
+
+	for i := len(r.middleware) - 1; i >= 0; i-- {
+		handler = r.middleware[i](handler)
+	}
+
+	r.mux.Handle(pattern, handler)
+}
+
+// ServeHTTP dispatches the request to the appropriate handler.
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.mux.ServeHTTP(w, req)
 }
 
 // Context helpers.
