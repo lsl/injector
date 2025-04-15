@@ -15,10 +15,16 @@ var injectors = map[reflect.Type]Injector{}
 // RegisterInjector allows services to be registered for injection.
 func RegisterInjector[T any](fn func(*http.Request) T) {
 	var zero T
+	// Two options here:
+	// 1. Strip pointers from type for matching
+	// t := reflect.TypeOf(zero)
+	// if t.Kind() == reflect.Ptr {
+	// 	t = t.Elem()
+	// }
+	// 2. Match types exactly
 	t := reflect.TypeOf(zero)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
+	// This seems to behave better for the example but I think I'll
+	// need to test it out in a bigger app.
 
 	if _, exists := injectors[t]; exists {
 		panic("injector already registered for type: " + t.String())
