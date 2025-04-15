@@ -12,8 +12,8 @@ type Injector func(*http.Request) any
 
 var injectors = map[reflect.Type]Injector{}
 
-// RegisterInjector allows services to be registered for injection.
-func RegisterInjector[T any](fn func(*http.Request) T) {
+// RegisterResolver allows services to be registered for injection.
+func RegisterResolver[T any](fn func(*http.Request) T) {
 	var zero T
 	// Two options here:
 	// 1. Strip pointers from type for matching
@@ -37,13 +37,13 @@ func RegisterInjector[T any](fn func(*http.Request) T) {
 
 // Register is a convenience helper to register static instances.
 func RegisterStatic[T any](val T) {
-	RegisterInjector(func(_ *http.Request) T {
+	RegisterResolver(func(_ *http.Request) T {
 		return val
 	})
 }
 
-// Injected wraps a function and builds an http.HandlerFunc with precompiled injection.
-func Injected(fn any) http.HandlerFunc {
+// Inject wraps a function and builds an http.HandlerFunc with precompiled injection.
+func Inject(fn any) http.HandlerFunc {
 	v := reflect.ValueOf(fn)
 	t := v.Type()
 

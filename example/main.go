@@ -137,12 +137,12 @@ func main() {
 	injector.RegisterStatic(userRepo)
 
 	// Register AppLogger explicitly to match the pointer type used in handlers
-	injector.RegisterInjector(func(r *http.Request) *AppLogger {
+	injector.RegisterResolver(func(r *http.Request) *AppLogger {
 		return logger
 	})
 
 	// Register user injection from context
-	injector.RegisterInjector(func(r *http.Request) *User {
+	injector.RegisterResolver(func(r *http.Request) *User {
 		user, ok := injector.Try[*User](r.Context())
 		if !ok {
 			// This will cause handlers that require User to fail
@@ -157,13 +157,13 @@ func main() {
 	// Create router and set up routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", HomeHandler)
-	mux.HandleFunc("/hello", injector.Injected(LogHandler))
-	mux.HandleFunc("/me", injector.Injected(UserInfoHandler))
-	mux.HandleFunc("/greet", injector.Injected(GreetingHandler))
-	mux.HandleFunc("/admin", injector.Injected(AdminHandler))
+	mux.HandleFunc("/hello", injector.Inject(LogHandler))
+	mux.HandleFunc("/me", injector.Inject(UserInfoHandler))
+	mux.HandleFunc("/greet", injector.Inject(GreetingHandler))
+	mux.HandleFunc("/admin", injector.Inject(AdminHandler))
 
 	// Apply middleware
-	handler := AuthMiddleware(userRepo, logger)(mux)
+	handler := injector.Middleware(AuthMiddleware)(mux)
 
 	// Start the server
 	serverAddr := ":8080"
