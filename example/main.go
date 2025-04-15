@@ -133,13 +133,10 @@ func main() {
 	logger := NewLogger()
 	userRepo := NewUserRepo()
 
-	// Debug log to see what type is getting registered
-	fmt.Printf("Logger type: %T\n", logger)
-
 	// Register dependencies for injection
 	injector.Register(userRepo)
 
-	// Explicitly register AppLogger with the exact type needed by handlers
+	// Register AppLogger explicitly to match the pointer type used in handlers
 	injector.RegisterInjector(func(r *http.Request) *AppLogger {
 		return logger
 	})
