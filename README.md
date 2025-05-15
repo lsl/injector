@@ -1,6 +1,10 @@
 # Injector
 
-Injector is a Go library that allows you to inject values and services into your HTTP handler functions.
+Injector is a Go library that injects values and services into your HTTP handler functions automagically.
+
+The typical approach to dependency injection in Go web applications is to pass dependencies into handlers from your main function. This works ok for applications where the dependencies are defined in the same place as the routes but for webservers that define routes in non central locations you end up with a prop drilling problem and tedious glue code when new dependencies are added.
+
+This problem is what injector solves, it centralizes dependency registration for your entire application and allows the handlers to express the dependencies in their call signatures.
 
 ## Features
 
@@ -11,7 +15,7 @@ Injector is a Go library that allows you to inject values and services into your
 - Context-based value storage and retrieval
 - Built-in middleware support
 - Optional router integration
-- Zero external dependencies
+- No external dependencies
 
 ## Installation
 
@@ -44,7 +48,7 @@ func main() {
     logger := log.New(os.Stdout, "[APP] ", log.LstdFlags)
 
     // Register the logger for injection
-    injector.Register(logger)
+    injector.RegisterStatic(logger)
 
     // Create a handler with injection
     http.HandleFunc("/user", injector.Inject(UserHandler))
@@ -106,7 +110,7 @@ handler := injector.Middleware(AuthMiddleware)(yourHandler)
 
 ### Built-in Router
 
-Injector provides an optional router that automatically handles injection for both routes and middleware:
+Injector provides a ServeMux based router that automatically handles injection for both routes and middleware. This is the typical use case for
 
 ```go
 // Create a router

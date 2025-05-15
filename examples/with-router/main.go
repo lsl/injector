@@ -1,6 +1,3 @@
-// File is commented out for now due to main function conflicts
-// To use this file, remove the main functions from other example files
-
 package main
 
 import (

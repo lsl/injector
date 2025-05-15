@@ -15,17 +15,7 @@ var injectors = map[reflect.Type]Injector{}
 // RegisterResolver registers a function that resolves a type dynamically per request.
 func RegisterResolver[T any](fn func(*http.Request) T) {
 	var zero T
-	// Two options here:
-	// 1. Strip pointers from type for matching
-	// t := reflect.TypeOf(zero)
-	// if t.Kind() == reflect.Ptr {
-	// 	t = t.Elem()
-	// }
-	// 2. Match types exactly
 	t := reflect.TypeOf(zero)
-	// This seems to behave better for the example but I think I'll
-	// need to test it out in a bigger app.
-
 	if _, exists := injectors[t]; exists {
 		panic("injector already registered for type: " + t.String())
 	}
