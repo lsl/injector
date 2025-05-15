@@ -2,7 +2,7 @@
 
 Injector is a Go library that injects values and services into your HTTP handler functions automagically.
 
-The typical approach to dependency injection in Go web applications is to pass dependencies into handlers from your main function. This works ok for applications where the dependencies are defined in the same place as the routes but for webservers that define routes in non central locations you end up with a prop drilling problem and tedious glue code when new dependencies are added.
+The typical approach to dependency injection in Go web applications is to pass dependencies into handlers from your main function. This works ok for applications where the dependencies are defined in the same place as the routes but for webservers that define routes in non central locations you end up with a prop drilling problem and tedious glue code to add whenever new dependencies are added.
 
 This problem is what injector solves, it centralizes dependency registration for your entire application and allows the handlers to express the dependencies in their call signatures.
 
@@ -65,13 +65,20 @@ func main() {
 You can register custom resolvers for more complex dependency injection:
 
 ```go
-// Register a resolver that extracts a user from the request context
-injector.RegisterResolver(func(r *http.Request) *User {
-    user, ok := injector.Try[*User](r.Context())
+// Locale represents a language code
+type Locale string
+
+// Register a resolver that extracts the current locale from the request context
+injector.RegisterResolver(func(r *http.Request) Locale {
+    locale, ok := injector.Try[Locale](r.Context())
     if !ok {
-        panic("No user found in request context")
+        // Default to Accept-Language header or fallback to en
+        if acceptLang := r.Header.Get("Accept-Language"); acceptLang != "" {
+            return Locale(acceptLang[:2]) // Get first two chars of Accept-Language
+        }
+        return "en"
     }
-    return user
+    return locale
 })
 ```
 
